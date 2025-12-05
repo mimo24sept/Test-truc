@@ -486,7 +486,7 @@
     const redNumbers = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
     const wheelOrder = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
     const slotAngle = 360 / wheelOrder.length;
-    const pointerOffset = -slotAngle / 2; // centre d'une case aligné sur la flèche (12h)
+    const pointerOffset = -90 - slotAngle / 2; // aligne le centre d'une case sur la flèche (12h)
 
     const creditsEl = document.getElementById('credits');
     const betAmountEl = document.getElementById('bet-amount');
@@ -604,8 +604,6 @@
       }
     };
 
-    const pointerOffset = 0; // 0° = flèche à 12h
-
     const buildWheel = () => {
       const segments = wheelOrder.map((num, i) => {
         const start = i * slotAngle + pointerOffset;
@@ -622,7 +620,7 @@
         const marker = document.createElement('div');
         const color = getColor(num);
         marker.className = `slot ${color}`;
-        const angle = i * slotAngle; // centre de case aligné à 12h
+        const angle = i * slotAngle + pointerOffset + slotAngle / 2; // centre de case aligné à 12h
         marker.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(-${radius}px) rotate(${-angle}deg)`;
         marker.textContent = num;
         wheelNumbers.appendChild(marker);
@@ -677,7 +675,7 @@
       const number = Math.floor(Math.random() * 37);
       const color = getColor(number);
       const targetIndex = wheelOrder.indexOf(number);
-      const targetAngle = targetIndex * slotAngle; // centre de case
+      const targetAngle = targetIndex * slotAngle + pointerOffset + slotAngle / 2; // centre de case sous la flèche
       const fullSpins = 3 + Math.floor(Math.random() * 3); // 3,4,5 tours
       const finalRotation = -(fullSpins * 360 + targetAngle); // rotation anti-horaire pour amener la case sous la flèche
       wheel.style.transform = `rotate(${finalRotation}deg)`;
