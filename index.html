@@ -234,11 +234,11 @@
       top: 50%;
       left: 50%;
       transform-origin: center;
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       font-weight: 800;
-      padding: 3px 6px;
-      border-radius: 10px;
-      min-width: 30px;
+      padding: 2px 5px;
+      border-radius: 9px;
+      min-width: 26px;
       text-align: center;
       letter-spacing: 0.02em;
       background: rgba(0, 0, 0, 0.78);
@@ -401,6 +401,7 @@
       display: flex;
       gap: 6px;
       align-items: center;
+      flex-wrap: wrap;
     }
 
     .selection-label strong { color: var(--text); }
@@ -444,6 +445,7 @@
           <label>Actions</label>
           <div class="actions">
             <button class="primary" id="spin">Lancer la roue</button>
+            <button class="ghost" id="all-in">All-in</button>
             <button class="ghost" id="reset">Reset à 10 000</button>
           </div>
         </div>
@@ -499,8 +501,8 @@
     const chipButtons = Array.from(document.querySelectorAll('[data-chip-value]'));
 
     let credits = 10000;
-    let selectedBet = null; // {type: 'number' | 'color', value: number|string, amount: number}
-    let chipToken = null;
+    const bets = new Map(); // key: spot id, value: {type,value,amount,label}
+    const chipsOnTable = new Map(); // spot -> chip element
     let spinning = false;
 
     const formatCredits = (value) => value.toLocaleString('fr-FR');
@@ -519,40 +521,54 @@
       creditsEl.textContent = `Crédits : ${formatCredits(credits)}`;
     };
 
-    const clearChipOnTable = () => {
-      if (chipToken?.parentElement) {
-        chipToken.parentElement.classList.remove('selected');
-        chipToken.parentElement.removeChild(chipToken);
+    const updateSelectionLabel = () => {
+      const totalBets = Array.from(bets.values()).reduce((sum, b) => sum + b.amount, 0);
+      if (bets.size === 0) {
+        selectedLabel.textContent = 'aucune';
+      } else {
+        selectedLabel.textContent = `${bets.size} mise(s) • total ${formatCredits(totalBets)} cr.`;
       }
-      chipToken = null;
     };
 
-    const clearSelectionUI = () => {
-      clearChipOnTable();
-      colorSpots.forEach(spot => spot.classList.remove('selected'));
-      selectedBet = null;
-      selectedLabel.textContent = 'aucune';
+    const removeChip = (spotId) => {
+      const chip = chipsOnTable.get(spotId);
+      if (chip?.parentElement) {
+        chip.parentElement.classList.remove('selected');
+        chip.remove();
+      }
+      chipsOnTable.delete(spotId);
     };
 
-    const setSelection = (bet) => {
-      clearChipOnTable();
+    const placeChip = (spotId, amount) => {
+      const target = document.querySelector(`[data-spot="${spotId}"]`);
+      if (!target) return;
+      removeChip(spotId);
+      target.classList.add('selected');
+      const chip = document.createElement('div');
+      chip.className = 'chip-token';
+      chip.textContent = amount.toLocaleString('fr-FR');
+      target.appendChild(chip);
+      chipsOnTable.set(spotId, chip);
+    };
+
+    const upsertBet = (bet) => {
+      const spotId = `${bet.type}-${bet.value}`;
+      bets.set(spotId, { ...bet });
+      placeChip(spotId, bet.amount);
+
+      // highlight colors
+      colorSpots.forEach(spot => {
+        const active = bets.has(`color-${spot.dataset.colorTarget}`);
+        spot.classList.toggle('selected', active);
+      });
+      updateSelectionLabel();
+    };
+
+    const clearAllBets = () => {
+      bets.clear();
+      Array.from(chipsOnTable.keys()).forEach(removeChip);
       colorSpots.forEach(spot => spot.classList.remove('selected'));
-
-      selectedBet = bet;
-      selectedLabel.textContent = bet.label;
-
-      const target = document.querySelector(`[data-spot="${bet.type}-${bet.value}"]`);
-      if (target) {
-        target.classList.add('selected');
-        chipToken = document.createElement('div');
-        chipToken.className = 'chip-token';
-        chipToken.textContent = bet.amount.toLocaleString('fr-FR');
-        target.appendChild(chipToken);
-      }
-      if (bet.type === 'color') {
-        const spot = colorSpots.find(s => s.dataset.colorTarget === bet.value);
-        if (spot) spot.classList.add('selected');
-      }
+      updateSelectionLabel();
     };
 
     const buildTable = () => {
@@ -600,7 +616,7 @@
       wheel.style.background = `conic-gradient(${segments})`;
 
       wheelNumbers.innerHTML = '';
-      const radius = wheel.clientWidth / 2 - 28;
+      const radius = wheel.clientWidth / 2 - 32;
       wheelOrder.forEach((num, i) => {
         const marker = document.createElement('div');
         const color = getColor(num);
@@ -636,22 +652,22 @@
     const spinWheel = () => {
       if (spinning) return;
 
-      if (!selectedBet) {
-        setStatus('Choisissez un numéro ou une couleur et placez un jeton.', '#f28585');
+      if (bets.size === 0) {
+        setStatus('Placez au moins une mise.', '#f28585');
         return;
       }
 
-      const bet = Number(selectedBet.amount);
-      if (!Number.isFinite(bet) || bet <= 0) {
-        setStatus('Mise invalide.', '#f28585');
+      const totalBet = Array.from(bets.values()).reduce((sum, b) => sum + b.amount, 0);
+      if (!Number.isFinite(totalBet) || totalBet <= 0) {
+        setStatus('Montant de mise invalide.', '#f28585');
         return;
       }
-      if (bet > credits) {
-        setStatus('Pas assez de crédits pour cette mise.', '#f28585');
+      if (totalBet > credits) {
+        setStatus('Pas assez de crédits pour ces mises.', '#f28585');
         return;
       }
 
-      credits -= bet;
+      credits -= totalBet;
       updateCredits();
 
       spinning = true;
@@ -662,26 +678,23 @@
       const slotAngle = 360 / wheelOrder.length;
       const targetIndex = wheelOrder.indexOf(number);
       const targetAngle = targetIndex * slotAngle + slotAngle / 2;
-      const extraSpins = 3 + Math.random() * 2; // 3 à 5 tours complets
-      const finalRotation = -(extraSpins * 360 + targetAngle);
+      const fullSpins = 3 + Math.floor(Math.random() * 3); // 3, 4 ou 5 tours complets
+      const finalRotation = -(fullSpins * 360 + targetAngle);
       wheel.style.transform = `rotate(${finalRotation}deg)`;
 
       setTimeout(() => {
         let payout = 0;
-        let betLabel = '';
-
-        if (selectedBet.type === 'number') {
-          betLabel = `Numéro ${selectedBet.value}`;
-          if (selectedBet.value === number) payout = bet * 36;
-        } else if (selectedBet.type === 'color') {
-          betLabel = `Couleur ${selectedBet.value}`;
-          if (selectedBet.value === color) payout = selectedBet.value === 'green' ? bet * 14 : bet * 2;
-        }
+        bets.forEach(bet => {
+          if (bet.type === 'number' && bet.value === number) payout += bet.amount * 36;
+          if (bet.type === 'color' && bet.value === color) {
+            payout += bet.amount * (bet.value === 'green' ? 14 : 2);
+          }
+        });
 
         credits += payout;
         updateCredits();
 
-        const net = payout - bet;
+        const net = payout - totalBet;
         const gainText = net >= 0
           ? `Vous gagnez ${formatCredits(net)} crédits !`
           : `Perdu ${formatCredits(Math.abs(net))} crédits.`;
@@ -689,11 +702,18 @@
 
         outcomeNumber.textContent = number;
         outcomeNumber.className = `badge ${color}`;
-        outcomeSummary.textContent = `${color === 'green' ? 'Zéro' : 'Couleur ' + color} • ${betLabel}`;
+        outcomeSummary.textContent = `${color === 'green' ? 'Zéro' : 'Couleur ' + color} • ${bets.size} mise(s)`;
 
-        addHistory({ number, color, bet, win: net, creditsLeft: credits, betLabel });
+        addHistory({
+          number,
+          color,
+          bet: totalBet,
+          win: net,
+          creditsLeft: credits,
+          betLabel: `${bets.size} mise(s) • total ${formatCredits(totalBet)}`
+        });
 
-        clearSelectionUI();
+        clearAllBets();
         spinning = false;
       }, 2600);
     };
@@ -707,7 +727,7 @@
       outcomeNumber.className = 'badge black';
       outcomeSummary.textContent = 'En attente...';
       wheel.style.transform = 'rotate(0deg)';
-      clearSelectionUI();
+      clearAllBets();
       spinning = false;
     };
 
@@ -720,7 +740,7 @@
         return;
       }
       const [type, value] = spot.dataset.spot.split('-');
-      setSelection({ type, value: Number(value), amount, label: `Numéro ${value}` });
+      upsertBet({ type, value: Number(value), amount, label: `Numéro ${value}` });
     };
 
     const handleColorClick = (event) => {
@@ -731,7 +751,7 @@
         return;
       }
       const color = spot.dataset.colorTarget;
-      setSelection({ type: 'color', value: color, amount, label: `Couleur ${color}` });
+      upsertBet({ type: 'color', value: color, amount, label: `Couleur ${color}` });
     };
 
     const handleChipButton = (event) => {
@@ -740,13 +760,15 @@
       btn.classList.add('active');
       const value = Number(btn.dataset.chipValue);
       betAmountEl.value = value;
-      if (selectedBet) {
-        setSelection({ ...selectedBet, amount: value });
-      }
+      // ne réécrit pas les mises déjà posées, le bouton sert à choisir la prochaine valeur
     };
 
     document.getElementById('spin').addEventListener('click', spinWheel);
     document.getElementById('reset').addEventListener('click', resetGame);
+    document.getElementById('all-in').addEventListener('click', () => {
+      betAmountEl.value = credits;
+      setStatus('All-in sélectionné : cliquez sur les cases voulues.', '#d8b55c');
+    });
 
     betTable.addEventListener('click', handleCellClick);
     colorSpots.forEach(spot => spot.addEventListener('click', handleColorClick));
