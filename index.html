@@ -6,16 +6,15 @@
   <title>Roulette Royale</title>
   <style>
     :root {
-      --table: #0b3b2e;
       --felt: linear-gradient(135deg, #0f5132 0%, #0c3826 60%, #0f5132 100%);
+      --card: rgba(8, 26, 20, 0.8);
       --gold: #d8b55c;
       --shadow: rgba(0, 0, 0, 0.35);
-      --chip-red: #c0392b;
-      --chip-black: #111;
-      --chip-green: #1fa971;
       --text: #f4f1e6;
       --muted: #9fb2a5;
-      --card: rgba(8, 26, 20, 0.7);
+      --chip-red: #e74c3c;
+      --chip-black: #1a1a1a;
+      --chip-green: #2ecc71;
     }
 
     * { box-sizing: border-box; }
@@ -37,18 +36,18 @@
       padding: 26px;
     }
 
-    .table {
+    .panel {
       background: var(--card);
       border: 1px solid rgba(216, 181, 92, 0.35);
       border-radius: 18px;
+      padding: 20px;
       box-shadow: 0 16px 40px var(--shadow);
-      padding: 22px;
       backdrop-filter: blur(4px);
       position: relative;
       overflow: hidden;
     }
 
-    .table::after {
+    .panel::after {
       content: "";
       position: absolute;
       inset: 0;
@@ -57,7 +56,11 @@
       pointer-events: none;
     }
 
-    .table-header {
+    h1, h2 { margin: 0; letter-spacing: 0.08em; }
+    h1 { font-size: 1.85rem; }
+    h2 { font-size: 1.2rem; }
+
+    .table-head {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -66,14 +69,8 @@
       z-index: 1;
     }
 
-    h1 {
-      margin: 0;
-      letter-spacing: 0.08em;
-      font-size: 1.8rem;
-    }
-
     .credits {
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       background: rgba(12, 56, 38, 0.7);
       border: 1px solid rgba(216, 181, 92, 0.35);
       padding: 10px 16px;
@@ -82,7 +79,7 @@
     }
 
     .status {
-      background: rgba(12, 56, 38, 0.9);
+      background: rgba(12, 56, 38, 0.85);
       border: 1px solid rgba(216, 181, 92, 0.25);
       border-radius: 12px;
       padding: 12px 14px;
@@ -104,7 +101,7 @@
 
     .controls {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 12px;
       margin-bottom: 16px;
       position: relative;
@@ -116,8 +113,7 @@
       border: 1px solid rgba(216, 181, 92, 0.25);
       padding: 12px;
       border-radius: 12px;
-      display: flex;
-      flex-direction: column;
+      display: grid;
       gap: 8px;
     }
 
@@ -127,69 +123,62 @@
       letter-spacing: 0.03em;
     }
 
-    input, select {
+    input {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(216, 181, 92, 0.3);
       color: var(--text);
       padding: 10px 12px;
       border-radius: 10px;
       font-size: 1rem;
+      width: 100%;
     }
 
-    .bet-colors {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    .palette {
+      display: flex;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
-    .chip {
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px;
-      padding: 12px;
-      color: #f8f8f8;
-      text-align: center;
-      font-weight: 600;
+    .chip-btn {
+      border: none;
+      border-radius: 50%;
+      width: 56px;
+      height: 56px;
+      font-weight: 700;
+      color: #0b0b0b;
       cursor: pointer;
+      box-shadow: 0 8px 14px rgba(0,0,0,0.35), inset 0 -4px 0 rgba(0,0,0,0.25);
       transition: transform 0.08s ease, box-shadow 0.1s ease, border 0.15s ease;
-      box-shadow: inset 0 -3px 0 rgba(0,0,0,0.25), 0 8px 12px rgba(0,0,0,0.35);
     }
 
-    .chip[data-color="red"] { background: linear-gradient(145deg, #e44636, #9f1f14); }
-    .chip[data-color="black"] { background: linear-gradient(145deg, #222, #0b0b0b); }
-    .chip[data-color="green"] { background: linear-gradient(145deg, #2fc485, #0f6b46); }
-
-    .chip.active {
-      transform: translateY(-2px);
-      border: 1px solid rgba(216, 181, 92, 0.75);
-      box-shadow: inset 0 -3px 0 rgba(0,0,0,0.35), 0 12px 18px rgba(0,0,0,0.45);
-    }
+    .chip-btn[data-color="red"] { background: linear-gradient(145deg, #e44636, #9f1f14); color: #f8f8f8; }
+    .chip-btn[data-color="black"] { background: linear-gradient(145deg, #222, #0b0b0b); color: #f8f8f8; }
+    .chip-btn[data-color="green"] { background: linear-gradient(145deg, #2fc485, #0f6b46); color: #0b0b0b; }
+    .chip-btn.active { transform: translateY(-2px); border: 1px solid rgba(216, 181, 92, 0.75); }
 
     .actions {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 10px;
       margin-top: 4px;
     }
 
-    button {
+    button.primary, button.ghost {
       border: none;
       border-radius: 12px;
       padding: 12px 14px;
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      color: #0b0b0b;
       transition: transform 0.08s ease, box-shadow 0.12s ease;
     }
-
     button:active { transform: translateY(1px); }
-
-    .primary {
+    button.primary {
       background: linear-gradient(135deg, #f0d782, #d6b54b);
       box-shadow: 0 10px 18px rgba(216, 181, 92, 0.35);
+      color: #0b0b0b;
     }
-
-    .ghost {
+    button.ghost {
       background: rgba(255,255,255,0.08);
       color: var(--text);
       border: 1px solid rgba(216, 181, 92, 0.3);
@@ -206,42 +195,22 @@
     }
 
     .wheel-wrap {
-      background: radial-gradient(circle at 50% 40%, rgba(216, 181, 92, 0.12), rgba(0,0,0,0.3));
+      background: radial-gradient(circle at 50% 40%, rgba(216, 181, 92, 0.12), rgba(0,0,0,0.35));
       border-radius: 50%;
       padding: 14px;
       display: grid;
       place-items: center;
       box-shadow: inset 0 0 20px rgba(0,0,0,0.35), 0 12px 24px rgba(0,0,0,0.35);
+      position: relative;
     }
 
     .wheel {
-      width: 260px;
-      height: 260px;
+      width: 280px;
+      height: 280px;
       border-radius: 50%;
-      background: conic-gradient(
-        #e84639 0deg 9.73deg, #101010 9.73deg 19.46deg,
-        #e84639 19.46deg 29.19deg, #101010 29.19deg 38.92deg,
-        #e84639 38.92deg 48.65deg, #101010 48.65deg 58.38deg,
-        #e84639 58.38deg 68.11deg, #101010 68.11deg 77.84deg,
-        #e84639 77.84deg 87.57deg, #101010 87.57deg 97.3deg,
-        #e84639 97.3deg 107.03deg, #101010 107.03deg 116.76deg,
-        #e84639 116.76deg 126.49deg, #101010 126.49deg 136.22deg,
-        #e84639 136.22deg 145.95deg, #101010 145.95deg 155.68deg,
-        #e84639 155.68deg 165.41deg, #101010 165.41deg 175.14deg,
-        #26a96c 175.14deg 184.87deg,
-        #e84639 184.87deg 194.6deg, #101010 194.6deg 204.33deg,
-        #e84639 204.33deg 214.06deg, #101010 214.06deg 223.79deg,
-        #e84639 223.79deg 233.52deg, #101010 233.52deg 243.25deg,
-        #e84639 243.25deg 252.98deg, #101010 252.98deg 262.71deg,
-        #e84639 262.71deg 272.44deg, #101010 272.44deg 282.17deg,
-        #e84639 282.17deg 291.9deg, #101010 291.9deg 301.63deg,
-        #e84639 301.63deg 311.36deg, #101010 311.36deg 321.09deg,
-        #e84639 321.09deg 330.82deg, #101010 330.82deg 340.55deg,
-        #e84639 340.55deg 350.28deg, #101010 350.28deg 360deg
-      );
       position: relative;
-      box-shadow: inset 0 0 20px rgba(0,0,0,0.45);
-      transition: transform 1s cubic-bezier(0.25, 0.9, 0.4, 1);
+      box-shadow: inset 0 0 24px rgba(0,0,0,0.45);
+      transition: transform 2.6s cubic-bezier(0.25, 0.9, 0.4, 1);
     }
 
     .wheel::after {
@@ -251,6 +220,24 @@
       border-radius: 50%;
       background: radial-gradient(circle, rgba(0,0,0,0.3), rgba(0,0,0,0.75));
       box-shadow: inset 0 0 8px rgba(0,0,0,0.45);
+    }
+
+    .slots {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .slot {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform-origin: center;
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+      color: #f5f5f5;
     }
 
     .pin {
@@ -285,26 +272,90 @@
       font-size: 0.95rem;
       border: 1px solid rgba(255,255,255,0.12);
     }
-
     .badge.red { background: rgba(228, 70, 54, 0.22); color: #f7c5bf; }
     .badge.black { background: rgba(0,0,0,0.35); color: #dcdcdc; }
     .badge.green { background: rgba(47, 196, 133, 0.25); color: #c9f1de; }
 
-    .history {
-      background: var(--card);
-      border: 1px solid rgba(216, 181, 92, 0.35);
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: 0 16px 40px var(--shadow);
-      backdrop-filter: blur(4px);
+    .felt-card { margin-top: 14px; position: relative; z-index: 1; }
+    .felt-card h2 { margin-bottom: 8px; }
+
+    .bet-grid {
+      display: grid;
+      grid-template-columns: 1.1fr repeat(12, 1fr);
+      grid-template-rows: repeat(3, 68px);
+      gap: 2px;
+      background: rgba(0,0,0,0.3);
+      padding: 6px;
+      border-radius: 14px;
+      border: 1px solid rgba(216,181,92,0.2);
+      position: relative;
+    }
+
+    .cell {
+      background: rgba(8, 26, 20, 0.75);
+      border: 1px solid rgba(216, 181, 92, 0.15);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: #f6f6f6;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.1s ease, border 0.1s ease;
+      overflow: hidden;
+    }
+
+    .cell:hover { border-color: rgba(216, 181, 92, 0.45); transform: translateY(-1px); }
+    .cell.selected { box-shadow: 0 0 0 2px rgba(216,181,92,0.5); }
+    .cell.red { background: linear-gradient(145deg, rgba(228, 70, 54, 0.35), rgba(228, 70, 54, 0.18)); }
+    .cell.black { background: linear-gradient(145deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35)); }
+    .cell.green { background: linear-gradient(145deg, rgba(47, 196, 133, 0.35), rgba(47, 196, 133, 0.2)); color: #0b0b0b; }
+    .cell.zero { grid-row: 1 / span 3; font-size: 1.2rem; }
+
+    .chip-token {
+      position: absolute;
+      inset: 0;
+      margin: auto;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #f0d782, #d6b54b);
+      color: #0b0b0b;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      box-shadow: 0 10px 16px rgba(0,0,0,0.4), inset 0 -4px 0 rgba(0,0,0,0.25);
+      pointer-events: none;
+      animation: drop 0.22s ease-out;
+    }
+
+    @keyframes drop { from { transform: translateY(-12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    .color-bets {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .color-spot {
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(216,181,92,0.25);
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: inset 0 -3px 0 rgba(0,0,0,0.25);
+      transition: transform 0.08s ease, box-shadow 0.1s ease, border 0.1s ease;
+      color: #f8f8f8;
       position: relative;
       overflow: hidden;
     }
 
-    .history h2 {
-      margin: 0 0 12px 0;
-      letter-spacing: 0.07em;
-    }
+    .color-spot.red { background: linear-gradient(145deg, #e44636, #9f1f14); }
+    .color-spot.black { background: linear-gradient(145deg, #222, #0b0b0b); }
+    .color-spot.green { background: linear-gradient(145deg, #2fc485, #0f6b46); color: #0b0b0b; }
+    .color-spot.selected { box-shadow: 0 0 0 2px rgba(216,181,92,0.55); transform: translateY(-1px); }
 
     .history-list {
       list-style: none;
@@ -312,7 +363,7 @@
       padding: 0;
       display: grid;
       gap: 10px;
-      max-height: 440px;
+      max-height: 720px;
       overflow-y: auto;
       padding-right: 4px;
     }
@@ -328,87 +379,89 @@
       align-items: center;
     }
 
-    .pip {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-    }
+    .pip { width: 10px; height: 10px; border-radius: 50%; }
+    .small { color: var(--muted); font-size: 0.92rem; }
 
-    .small {
+    .selection-label {
       color: var(--muted);
-      font-size: 0.92rem;
+      font-size: 0.95rem;
+      display: flex;
+      gap: 6px;
+      align-items: center;
     }
 
-    @media (max-width: 960px) {
+    .selection-label strong { color: var(--text); }
+
+    @media (max-width: 1100px) {
       .layout { grid-template-columns: 1fr; }
-      .controls { grid-template-columns: 1fr; }
       .stage { grid-template-columns: 1fr; }
-      .wheel { width: 220px; height: 220px; }
+      .wheel { width: 240px; height: 240px; }
     }
   </style>
 </head>
 <body>
   <div class="layout">
-    <section class="table">
-      <div class="table-header">
+    <section class="panel">
+      <div class="table-head">
         <h1>Roulette Royale</h1>
         <div class="credits" id="credits">Crédits : 10 000</div>
       </div>
 
       <div class="status" id="status">
         <div class="indicator" id="status-indicator" style="background:#888;"></div>
-        <div id="status-text">Placez votre mise et tournez la roue.</div>
+        <div id="status-text">Choisissez un numéro ou une couleur, placez un jeton puis lancez.</div>
       </div>
 
       <div class="controls">
         <div class="control">
           <label for="bet-amount">Montant de la mise</label>
           <input id="bet-amount" type="number" min="1" value="100">
-        </div>
-
-        <div class="control">
-          <label for="bet-type">Type de mise</label>
-          <select id="bet-type">
-            <option value="color">Couleur (x2 / x14 sur 0)</option>
-            <option value="number">Numéro plein (x36)</option>
-          </select>
-        </div>
-
-        <div class="control" id="color-picker">
-          <label>Choisissez une couleur</label>
-          <div class="bet-colors">
-            <div class="chip" data-color="red">Rouge</div>
-            <div class="chip" data-color="black">Noir</div>
-            <div class="chip" data-color="green">Zéro</div>
+          <div class="palette">
+            <button class="chip-btn" data-chip-value="50" data-color="green">50</button>
+            <button class="chip-btn" data-chip-value="100" data-color="red">100</button>
+            <button class="chip-btn" data-chip-value="500" data-color="black">500</button>
+            <button class="chip-btn" data-chip-value="1000" data-color="red">1000</button>
+            <button class="chip-btn" data-chip-value="5000" data-color="black">5000</button>
+          </div>
+          <div class="selection-label">
+            Cible : <strong id="selected-label">aucune</strong>
           </div>
         </div>
-
-        <div class="control" id="number-picker" style="display:none;">
-          <label for="bet-number">Numéro (0 - 36)</label>
-          <input id="bet-number" type="number" min="0" max="36" placeholder="Ex: 17">
+        <div class="control">
+          <label>Actions</label>
+          <div class="actions">
+            <button class="primary" id="spin">Lancer la roue</button>
+            <button class="ghost" id="reset">Reset à 10 000</button>
+          </div>
         </div>
-      </div>
-
-      <div class="actions">
-        <button class="primary" id="spin">Lancer la roue</button>
-        <button class="ghost" id="reset">Reset à 10 000</button>
       </div>
 
       <div class="stage">
         <div class="wheel-wrap">
           <div class="pin"></div>
-          <div class="wheel" id="wheel"></div>
+          <div class="wheel" id="wheel">
+            <div class="slots" id="wheel-numbers"></div>
+          </div>
         </div>
-
         <div class="outcome">
           <div class="small">Dernier résultat</div>
           <div id="outcome-number" class="badge black">-</div>
           <div id="outcome-summary" class="small">En attente...</div>
         </div>
       </div>
+
+      <div class="felt-card">
+        <h2>Tapis des mises</h2>
+        <div class="bet-grid" id="bet-table"></div>
+        <div class="color-bets">
+          <div class="color-spot red" data-color-target="red" data-spot="color-red">Rouge x2</div>
+          <div class="color-spot black" data-color-target="black" data-spot="color-black">Noir x2</div>
+          <div class="color-spot green" data-color-target="green" data-spot="color-green">Zéro x14</div>
+        </div>
+      </div>
     </section>
 
-    <aside class="history">
+    <aside class="panel">
       <h2>Historique</h2>
       <ul class="history-list" id="history-list"></ul>
     </aside>
@@ -416,20 +469,27 @@
 
   <script>
     const redNumbers = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+    const wheelOrder = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
+
     const creditsEl = document.getElementById('credits');
     const betAmountEl = document.getElementById('bet-amount');
-    const betTypeEl = document.getElementById('bet-type');
-    const betNumberEl = document.getElementById('bet-number');
-    const chips = Array.from(document.querySelectorAll('.chip'));
     const statusText = document.getElementById('status-text');
     const statusIndicator = document.getElementById('status-indicator');
     const wheel = document.getElementById('wheel');
+    const wheelNumbers = document.getElementById('wheel-numbers');
     const outcomeNumber = document.getElementById('outcome-number');
     const outcomeSummary = document.getElementById('outcome-summary');
     const historyList = document.getElementById('history-list');
+    const betTable = document.getElementById('bet-table');
+    const selectedLabel = document.getElementById('selected-label');
+    const colorSpots = Array.from(document.querySelectorAll('[data-color-target]'));
+    const chipButtons = Array.from(document.querySelectorAll('[data-chip-value]'));
 
     let credits = 10000;
-    let lastSpin = 0;
+    let selectedBet = null; // {type: 'number' | 'color', value: number|string, amount: number}
+    let chipToken = null;
+    let spinning = false;
+    let spinCount = 0;
 
     const formatCredits = (value) => value.toLocaleString('fr-FR');
 
@@ -447,8 +507,96 @@
       creditsEl.textContent = `Crédits : ${formatCredits(credits)}`;
     };
 
-    const setActiveChip = (color) => {
-      chips.forEach(chip => chip.classList.toggle('active', chip.dataset.color === color));
+    const clearChipOnTable = () => {
+      if (chipToken?.parentElement) {
+        chipToken.parentElement.classList.remove('selected');
+        chipToken.parentElement.removeChild(chipToken);
+      }
+      chipToken = null;
+    };
+
+    const clearSelectionUI = () => {
+      clearChipOnTable();
+      colorSpots.forEach(spot => spot.classList.remove('selected'));
+      selectedBet = null;
+      selectedLabel.textContent = 'aucune';
+    };
+
+    const setSelection = (bet) => {
+      clearChipOnTable();
+      colorSpots.forEach(spot => spot.classList.remove('selected'));
+
+      selectedBet = bet;
+      selectedLabel.textContent = bet.label;
+
+      const target = document.querySelector(`[data-spot="${bet.type}-${bet.value}"]`);
+      if (target) {
+        target.classList.add('selected');
+        chipToken = document.createElement('div');
+        chipToken.className = 'chip-token';
+        chipToken.textContent = bet.amount.toLocaleString('fr-FR');
+        target.appendChild(chipToken);
+      }
+      if (bet.type === 'color') {
+        const spot = colorSpots.find(s => s.dataset.colorTarget === bet.value);
+        if (spot) spot.classList.add('selected');
+      }
+    };
+
+    const buildTable = () => {
+      const zero = document.createElement('div');
+      zero.className = 'cell green zero';
+      zero.textContent = '0';
+      zero.dataset.spot = 'number-0';
+      zero.style.gridRow = '1 / span 3';
+      zero.style.gridColumn = '1';
+      betTable.appendChild(zero);
+
+      let column = 2;
+      for (let i = 0; i < 12; i++) {
+        const top = 3 + i * 3;
+        const middle = 2 + i * 3;
+        const bottom = 1 + i * 3;
+        const cells = [
+          { n: top, row: 1 },
+          { n: middle, row: 2 },
+          { n: bottom, row: 3 },
+        ];
+        cells.forEach(({ n, row }) => {
+          const cell = document.createElement('div');
+          const color = getColor(n);
+          cell.className = `cell ${color}`;
+          cell.textContent = n;
+          cell.dataset.spot = `number-${n}`;
+          cell.style.gridColumn = `${column}`;
+          cell.style.gridRow = `${row}`;
+          betTable.appendChild(cell);
+        });
+        column += 1;
+      }
+    };
+
+    const buildWheel = () => {
+      const slotAngle = 360 / wheelOrder.length;
+      const segments = wheelOrder.map((num, i) => {
+        const start = i * slotAngle;
+        const end = start + slotAngle;
+        const color = getColor(num);
+        const hex = color === 'red' ? '#e44636' : color === 'black' ? '#101010' : '#2fc485';
+        return `${hex} ${start}deg ${end}deg`;
+      }).join(', ');
+      wheel.style.background = `conic-gradient(${segments})`;
+
+      wheelNumbers.innerHTML = '';
+      wheelOrder.forEach((num, i) => {
+        const marker = document.createElement('div');
+        const color = getColor(num);
+        marker.className = `slot ${color}`;
+        const angle = i * slotAngle + slotAngle / 2;
+        marker.style.transform = `rotate(${angle}deg) translateY(-46%) rotate(${-angle}deg)`;
+        marker.textContent = num;
+        wheelNumbers.appendChild(marker);
+      });
     };
 
     const addHistory = ({ number, color, bet, win, creditsLeft, betLabel }) => {
@@ -457,7 +605,7 @@
 
       const pip = document.createElement('div');
       pip.className = 'pip';
-      pip.style.background = color === 'red' ? '#e84639' : color === 'black' ? '#0b0b0b' : '#2fc485';
+      pip.style.background = color === 'red' ? '#e44636' : color === 'black' ? '#0b0b0b' : '#2fc485';
 
       const desc = document.createElement('div');
       desc.innerHTML = `<strong>${number}</strong> (${color}) • ${betLabel}`;
@@ -473,7 +621,14 @@
     };
 
     const spinWheel = () => {
-      const bet = Number(betAmountEl.value);
+      if (spinning) return;
+
+      if (!selectedBet) {
+        setStatus('Choisissez un numéro ou une couleur et placez un jeton.', '#f28585');
+        return;
+      }
+
+      const bet = Number(selectedBet.amount);
       if (!Number.isFinite(bet) || bet <= 0) {
         setStatus('Mise invalide.', '#f28585');
         return;
@@ -483,85 +638,110 @@
         return;
       }
 
-      const betType = betTypeEl.value;
-      let betColor = chips.find(chip => chip.classList.contains('active'))?.dataset.color;
-      let betNumber = Number(betNumberEl.value);
-
-      if (betType === 'color' && !betColor) {
-        setStatus('Choisissez une couleur.', '#f28585');
-        return;
-      }
-      if (betType === 'number') {
-        if (!Number.isInteger(betNumber) || betNumber < 0 || betNumber > 36) {
-          setStatus('Numéro entre 0 et 36 obligatoire.', '#f28585');
-          return;
-        }
-      }
-
       credits -= bet;
       updateCredits();
 
+      spinning = true;
+      setStatus('La roue tourne...', '#d8b55c');
+
       const number = Math.floor(Math.random() * 37);
-      lastSpin = (lastSpin + 1) % 24;
-      const spinDeg = 720 + number * 9.73 + lastSpin * 4;
-      wheel.style.transform = `rotate(${spinDeg}deg)`;
-
       const color = getColor(number);
-      let payout = 0;
-      let label;
+      const slotAngle = 360 / wheelOrder.length;
+      const targetIndex = wheelOrder.indexOf(number);
+      spinCount += 1;
+      const extraSpins = 720 * spinCount + Math.random() * 60;
+      const finalRotation = extraSpins - targetIndex * slotAngle - slotAngle / 2;
+      wheel.style.transform = `rotate(${finalRotation}deg)`;
 
-      if (betType === 'color') {
-        label = `Mise couleur ${betColor}`;
-        if (betColor === color) {
-          payout = betColor === 'green' ? bet * 14 : bet * 2;
+      setTimeout(() => {
+        let payout = 0;
+        let betLabel = '';
+
+        if (selectedBet.type === 'number') {
+          betLabel = `Numéro ${selectedBet.value}`;
+          if (selectedBet.value === number) payout = bet * 36;
+        } else if (selectedBet.type === 'color') {
+          betLabel = `Couleur ${selectedBet.value}`;
+          if (selectedBet.value === color) payout = selectedBet.value === 'green' ? bet * 14 : bet * 2;
         }
-      } else {
-        label = `Mise numéro ${betNumber}`;
-        if (betNumber === number) {
-          payout = bet * 36;
-        }
-      }
 
-      credits += payout;
-      updateCredits();
+        credits += payout;
+        updateCredits();
 
-      const net = payout - bet;
-      const gainText = net >= 0 ? `Vous gagnez ${formatCredits(net)} crédits !` : `Perdu ${formatCredits(Math.abs(net))} crédits.`;
-      setStatus(`${gainText} Résultat: ${number} (${color}).`, net >= 0 ? '#d8b55c' : '#f28585');
+        const net = payout - bet;
+        const gainText = net >= 0
+          ? `Vous gagnez ${formatCredits(net)} crédits !`
+          : `Perdu ${formatCredits(Math.abs(net))} crédits.`;
+        setStatus(`${gainText} Résultat: ${number} (${color}).`, net >= 0 ? '#d8b55c' : '#f28585');
 
-      outcomeNumber.textContent = number;
-      outcomeNumber.className = `badge ${color}`;
-      outcomeSummary.textContent = `${color === 'green' ? 'Zéro' : 'Couleur ' + color} • ${label}`;
+        outcomeNumber.textContent = number;
+        outcomeNumber.className = `badge ${color}`;
+        outcomeSummary.textContent = `${color === 'green' ? 'Zéro' : 'Couleur ' + color} • ${betLabel}`;
 
-      addHistory({ number, color, bet, win: net, creditsLeft: credits, betLabel: label });
+        addHistory({ number, color, bet, win: net, creditsLeft: credits, betLabel });
+
+        clearSelectionUI();
+        spinning = false;
+      }, 2600);
     };
 
     const resetGame = () => {
       credits = 10000;
       updateCredits();
       historyList.innerHTML = '';
-      setStatus('Crédits remis à 10 000. Bonne chance !', '#d8b55c');
+      setStatus('Crédits remis à 10 000. Placez votre mise.', '#d8b55c');
       outcomeNumber.textContent = '-';
       outcomeNumber.className = 'badge black';
       outcomeSummary.textContent = 'En attente...';
       wheel.style.transform = 'rotate(0deg)';
+      clearSelectionUI();
+      spinning = false;
     };
 
-    betTypeEl.addEventListener('change', () => {
-      const isColor = betTypeEl.value === 'color';
-      document.getElementById('color-picker').style.display = isColor ? 'block' : 'none';
-      document.getElementById('number-picker').style.display = isColor ? 'none' : 'block';
-    });
+    const handleCellClick = (event) => {
+      const spot = event.target.closest('.cell');
+      if (!spot) return;
+      const amount = Number(betAmountEl.value);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        setStatus('Entrez un montant valide avant de placer un jeton.', '#f28585');
+        return;
+      }
+      const [type, value] = spot.dataset.spot.split('-');
+      setSelection({ type, value: Number(value), amount, label: `Numéro ${value}` });
+    };
 
-    chips.forEach(chip => {
-      chip.addEventListener('click', () => setActiveChip(chip.dataset.color));
-    });
+    const handleColorClick = (event) => {
+      const spot = event.currentTarget;
+      const amount = Number(betAmountEl.value);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        setStatus('Entrez un montant valide avant de placer un jeton.', '#f28585');
+        return;
+      }
+      const color = spot.dataset.colorTarget;
+      setSelection({ type: 'color', value: color, amount, label: `Couleur ${color}` });
+    };
+
+    const handleChipButton = (event) => {
+      chipButtons.forEach(btn => btn.classList.remove('active'));
+      const btn = event.currentTarget;
+      btn.classList.add('active');
+      const value = Number(btn.dataset.chipValue);
+      betAmountEl.value = value;
+      if (selectedBet) {
+        setSelection({ ...selectedBet, amount: value });
+      }
+    };
 
     document.getElementById('spin').addEventListener('click', spinWheel);
     document.getElementById('reset').addEventListener('click', resetGame);
 
-    setActiveChip('red');
-    setStatus('Placez votre mise et tournez la roue.', '#888');
+    betTable.addEventListener('click', handleCellClick);
+    colorSpots.forEach(spot => spot.addEventListener('click', handleColorClick));
+    chipButtons.forEach(btn => btn.addEventListener('click', handleChipButton));
+
+    buildTable();
+    buildWheel();
+    setStatus('Choisissez un numéro ou une couleur, placez un jeton puis lancez.', '#888');
   </script>
 </body>
 </html>
