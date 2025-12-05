@@ -601,12 +601,13 @@
       wheel.style.background = `conic-gradient(${segments})`;
 
       wheelNumbers.innerHTML = '';
+      const radius = wheel.clientWidth / 2 - 28;
       wheelOrder.forEach((num, i) => {
         const marker = document.createElement('div');
         const color = getColor(num);
         marker.className = `slot ${color}`;
         const angle = i * slotAngle + slotAngle / 2;
-        marker.style.transform = `rotate(${angle}deg) translateY(-46%) rotate(${-angle}deg)`;
+        marker.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(-${radius}px) rotate(${-angle}deg)`;
         marker.textContent = num;
         wheelNumbers.appendChild(marker);
       });
