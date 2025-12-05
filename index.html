@@ -502,7 +502,6 @@
     let selectedBet = null; // {type: 'number' | 'color', value: number|string, amount: number}
     let chipToken = null;
     let spinning = false;
-    let spinCount = 0;
 
     const formatCredits = (value) => value.toLocaleString('fr-FR');
 
@@ -662,9 +661,9 @@
       const color = getColor(number);
       const slotAngle = 360 / wheelOrder.length;
       const targetIndex = wheelOrder.indexOf(number);
-      spinCount += 1;
-      const extraSpins = 720 * spinCount + Math.random() * 60;
-      const finalRotation = extraSpins - targetIndex * slotAngle - slotAngle / 2;
+      const targetAngle = targetIndex * slotAngle + slotAngle / 2;
+      const extraSpins = 3 + Math.random() * 2; // 3 à 5 tours complets
+      const finalRotation = -(extraSpins * 360 + targetAngle);
       wheel.style.transform = `rotate(${finalRotation}deg)`;
 
       setTimeout(() => {
