@@ -1,3 +1,66 @@
+<?php
+declare(strict_types=1);
+
+session_start();
+require __DIR__ . '/db.php';
+
+$pdo = db();
+$errors = [];
+$notice = '';
+
+$sanitize = static fn($value) => trim((string) $value);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $action = $_POST['action'];
+    $username = $sanitize($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if ($username === '' || $password === '') {
+        $errors[] = 'Pseudo et mot de passe sont obligatoires.';
+    }
+    if (strlen($password) < 4) {
+        $errors[] = 'Mot de passe trop court (minimum 4 caractères).';
+    }
+
+    if (empty($errors)) {
+        if ($action === 'signup') {
+            $stmt = $pdo->prepare('SELECT id FROM users WHERE username = :u');
+            $stmt->execute([':u' => $username]);
+            if ($stmt->fetch()) {
+                $errors[] = 'Ce pseudo est déjà pris.';
+            } else {
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+                $insert = $pdo->prepare('INSERT INTO users (username, password_hash, credits) VALUES (:u, :p, 10000)');
+                $insert->execute([':u' => $username, ':p' => $hash]);
+                $_SESSION['user_id'] = (int) $pdo->lastInsertId();
+                header('Location: index.php');
+                exit;
+            }
+        } elseif ($action === 'login') {
+            $stmt = $pdo->prepare('SELECT id, password_hash FROM users WHERE username = :u');
+            $stmt->execute([':u' => $username]);
+            $row = $stmt->fetch();
+            if (!$row || !password_verify($password, $row['password_hash'])) {
+                $errors[] = 'Pseudo ou mot de passe incorrect.';
+            } else {
+                $_SESSION['user_id'] = (int) $row['id'];
+                header('Location: index.php');
+                exit;
+            }
+        }
+    }
+}
+
+$user = null;
+if (isset($_SESSION['user_id'])) {
+    $user = getUser($pdo, (int) $_SESSION['user_id']);
+    if (!$user) {
+        unset($_SESSION['user_id']);
+    }
+}
+
+$leaders = getLeaders($pdo);
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -15,6 +78,7 @@
       --chip-red: #e74c3c;
       --chip-black: #1a1a1a;
       --chip-green: #2ecc71;
+      --danger: #f28585;
     }
 
     * { box-sizing: border-box; }
@@ -158,7 +222,7 @@
 
     .actions {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 10px;
       margin-top: 4px;
     }
@@ -406,6 +470,53 @@
 
     .selection-label strong { color: var(--text); }
 
+    .leaders-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    .leaders-table th, .leaders-table td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(216, 181, 92, 0.2);
+    }
+
+    .leaders-table th { color: var(--muted); font-weight: 600; }
+    .leaders-table td:last-child { text-align: right; }
+
+    .auth-wrap {
+      max-width: 720px;
+      margin: 64px auto;
+      display: grid;
+      gap: 18px;
+      padding: 0 18px;
+    }
+
+    .auth-panel form {
+      display: grid;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .errors {
+      background: rgba(242, 133, 133, 0.15);
+      border: 1px solid rgba(242, 133, 133, 0.4);
+      color: #ffdede;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    .notice {
+      background: rgba(216, 181, 92, 0.18);
+      border: 1px solid rgba(216, 181, 92, 0.45);
+      color: #f7eac4;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
     @media (max-width: 1100px) {
       .layout { grid-template-columns: 1fr; }
       .stage { grid-template-columns: 1fr; }
@@ -414,16 +525,55 @@
   </style>
 </head>
 <body>
+<?php if (!$user): ?>
+  <div class="auth-wrap">
+    <section class="panel auth-panel">
+      <h1>Connexion requise</h1>
+      <p>Créez un compte ou connectez-vous pour accéder à la roulette.</p>
+      <?php if ($errors): ?>
+        <div class="errors">
+          <?php foreach ($errors as $err): ?>
+            <div><?php echo htmlspecialchars($err, ENT_QUOTES); ?></div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+      <div class="controls" style="margin-top:12px;">
+        <div class="control">
+          <h3 style="margin:0;">Se connecter</h3>
+          <form method="post">
+            <input type="hidden" name="action" value="login">
+            <label>Pseudo</label>
+            <input name="username" required>
+            <label>Mot de passe</label>
+            <input type="password" name="password" required>
+            <button class="primary" type="submit">Connexion</button>
+          </form>
+        </div>
+        <div class="control">
+          <h3 style="margin:0;">Créer un compte</h3>
+          <form method="post">
+            <input type="hidden" name="action" value="signup">
+            <label>Pseudo</label>
+            <input name="username" required>
+            <label>Mot de passe</label>
+            <input type="password" name="password" required>
+            <button class="ghost" type="submit">Créer et jouer</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+<?php else: ?>
   <div class="layout">
     <section class="panel">
       <div class="table-head">
         <h1>Roulette Royale</h1>
-        <div class="credits" id="credits">Crédits : 10 000</div>
+        <div class="credits" id="credits">Crédits : <?php echo number_format((int)$user['credits'], 0, ',', ' '); ?></div>
       </div>
 
       <div class="status" id="status">
         <div class="indicator" id="status-indicator" style="background:#888;"></div>
-        <div id="status-text">Choisissez un numéro ou une couleur, placez un jeton puis lancez.</div>
+        <div id="status-text">Choisissez un numéro ou une couleur, placez des jetons puis lancez.</div>
       </div>
 
       <div class="controls">
@@ -479,9 +629,28 @@
     <aside class="panel">
       <h2>Historique</h2>
       <ul class="history-list" id="history-list"></ul>
+      <h2 style="margin-top:14px;">Chips leaders</h2>
+      <table class="leaders-table">
+        <thead>
+          <tr><th>#</th><th>Pseudo</th><th>Crédits</th></tr>
+        </thead>
+        <tbody id="leaders-body">
+          <?php foreach ($leaders as $index => $leader): ?>
+            <tr>
+              <td><?php echo $index + 1; ?></td>
+              <td><?php echo htmlspecialchars($leader['username'], ENT_QUOTES); ?></td>
+              <td><?php echo number_format((int)$leader['credits'], 0, ',', ' '); ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
     </aside>
   </div>
 
+  <script>
+    window.initialCredits = <?php echo (int) $user['credits']; ?>;
+    window.initialLeaders = <?php echo json_encode($leaders, JSON_UNESCAPED_UNICODE); ?>;
+  </script>
   <script>
     const redNumbers = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
     const wheelOrder = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
@@ -499,8 +668,9 @@
     const selectedLabel = document.getElementById('selected-label');
     const colorSpots = Array.from(document.querySelectorAll('[data-color-target]'));
     const chipButtons = Array.from(document.querySelectorAll('[data-chip-value]'));
+    const leadersBody = document.getElementById('leaders-body');
 
-    let credits = 10000;
+    let credits = Number(window.initialCredits || 0);
     const bets = new Map(); // key: spot id, value: {type,value,amount,label}
     const chipsOnTable = new Map(); // spot -> chip element
     let spinning = false;
@@ -519,6 +689,23 @@
 
     const updateCredits = () => {
       creditsEl.textContent = `Crédits : ${formatCredits(credits)}`;
+    };
+
+    const renderLeaders = (leaders) => {
+      if (!leadersBody) return;
+      leadersBody.innerHTML = '';
+      leaders.forEach((row, idx) => {
+        const tr = document.createElement('tr');
+        const rank = document.createElement('td');
+        rank.textContent = idx + 1;
+        const name = document.createElement('td');
+        name.textContent = row.username;
+        const amount = document.createElement('td');
+        amount.textContent = formatCredits(Number(row.credits || 0));
+        amount.style.textAlign = 'right';
+        tr.append(rank, name, amount);
+        leadersBody.appendChild(tr);
+      });
     };
 
     const updateSelectionLabel = () => {
@@ -555,8 +742,6 @@
       const spotId = `${bet.type}-${bet.value}`;
       bets.set(spotId, { ...bet });
       placeChip(spotId, bet.amount);
-
-      // highlight colors
       colorSpots.forEach(spot => {
         const active = bets.has(`color-${spot.dataset.colorTarget}`);
         spot.classList.toggle('selected', active);
@@ -649,7 +834,7 @@
       historyList.prepend(item);
     };
 
-    const spinWheel = () => {
+    const spinWheel = async () => {
       if (spinning) return;
 
       if (bets.size === 0) {
@@ -667,68 +852,87 @@
         return;
       }
 
-      credits -= totalBet;
-      updateCredits();
-
       spinning = true;
       setStatus('La roue tourne...', '#d8b55c');
 
-      const number = Math.floor(Math.random() * 37);
-      const color = getColor(number);
-      const slotAngle = 360 / wheelOrder.length;
-      const targetIndex = wheelOrder.indexOf(number);
-      const targetAngle = targetIndex * slotAngle + slotAngle / 2;
-      const fullSpins = 3 + Math.floor(Math.random() * 3); // 3, 4 ou 5 tours complets
-      const finalRotation = -(fullSpins * 360 + targetAngle);
-      wheel.style.transform = `rotate(${finalRotation}deg)`;
-
-      setTimeout(() => {
-        let payout = 0;
-        bets.forEach(bet => {
-          if (bet.type === 'number' && bet.value === number) payout += bet.amount * 36;
-          if (bet.type === 'color' && bet.value === color) {
-            payout += bet.amount * (bet.value === 'green' ? 14 : 2);
-          }
+      const betArray = Array.from(bets.values());
+      try {
+        const res = await fetch('api.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'spin', bets: betArray })
         });
+        if (!res.ok) {
+          const msg = await res.text();
+          throw new Error(msg || 'Erreur serveur');
+        }
+        const data = await res.json();
+        const { number, color, credits: newCredits, payout, totalBet: serverBet, net, betsCount, leaders } = data;
 
-        credits += payout;
+        credits = newCredits;
         updateCredits();
+        if (Array.isArray(leaders)) renderLeaders(leaders);
 
-        const net = payout - totalBet;
-        const gainText = net >= 0
-          ? `Vous gagnez ${formatCredits(net)} crédits !`
-          : `Perdu ${formatCredits(Math.abs(net))} crédits.`;
-        setStatus(`${gainText} Résultat: ${number} (${color}).`, net >= 0 ? '#d8b55c' : '#f28585');
+        const slotAngle = 360 / wheelOrder.length;
+        const targetIndex = wheelOrder.indexOf(number);
+        const targetAngle = targetIndex * slotAngle + slotAngle / 2;
+        const extraSpins = 3 + Math.random() * 2;
+        const finalRotation = -(extraSpins * 360 + targetAngle);
+        wheel.style.transform = `rotate(${finalRotation}deg)`;
 
-        outcomeNumber.textContent = number;
-        outcomeNumber.className = `badge ${color}`;
-        outcomeSummary.textContent = `${color === 'green' ? 'Zéro' : 'Couleur ' + color} • ${bets.size} mise(s)`;
+        setTimeout(() => {
+          const gainText = net >= 0
+            ? `Vous gagnez ${formatCredits(net)} crédits !`
+            : `Perdu ${formatCredits(Math.abs(net))} crédits.`;
+          setStatus(`${gainText} Résultat: ${number} (${color}).`, net >= 0 ? '#d8b55c' : '#f28585');
 
-        addHistory({
-          number,
-          color,
-          bet: totalBet,
-          win: net,
-          creditsLeft: credits,
-          betLabel: `${bets.size} mise(s) • total ${formatCredits(totalBet)}`
-        });
+          outcomeNumber.textContent = number;
+          outcomeNumber.className = `badge ${color}`;
+          outcomeSummary.textContent = `${color === 'green' ? 'Zéro' : 'Couleur ' + color} • ${betsCount} mise(s)`;
 
-        clearAllBets();
+          addHistory({
+            number,
+            color,
+            bet: serverBet,
+            win: net,
+            creditsLeft: credits,
+            betLabel: `${betsCount} mise(s) • total ${formatCredits(serverBet)}`
+          });
+
+          clearAllBets();
+          spinning = false;
+        }, 2600);
+      } catch (err) {
+        setStatus(err.message || 'Erreur lors du spin.', '#f28585');
         spinning = false;
-      }, 2600);
+      }
     };
 
-    const resetGame = () => {
-      credits = 10000;
-      updateCredits();
-      historyList.innerHTML = '';
-      setStatus('Crédits remis à 10 000. Placez votre mise.', '#d8b55c');
-      outcomeNumber.textContent = '-';
-      outcomeNumber.className = 'badge black';
-      outcomeSummary.textContent = 'En attente...';
-      wheel.style.transform = 'rotate(0deg)';
+    const resetGame = async () => {
       clearAllBets();
-      spinning = false;
+      setStatus('Reset en cours...', '#d8b55c');
+      try {
+        const res = await fetch('api.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'reset' })
+        });
+        if (!res.ok) {
+          const msg = await res.text();
+          throw new Error(msg || 'Reset impossible.');
+        }
+        const data = await res.json();
+        credits = data.credits ?? 10000;
+        updateCredits();
+        if (Array.isArray(data.leaders)) renderLeaders(data.leaders);
+        setStatus('Crédits remis à 10 000. Placez votre mise.', '#d8b55c');
+        outcomeNumber.textContent = '-';
+        outcomeNumber.className = 'badge black';
+        outcomeSummary.textContent = 'En attente...';
+        wheel.style.transform = 'rotate(0deg)';
+      } catch (err) {
+        setStatus(err.message || 'Erreur reset.', '#f28585');
+      }
     };
 
     const handleCellClick = (event) => {
@@ -760,7 +964,6 @@
       btn.classList.add('active');
       const value = Number(btn.dataset.chipValue);
       betAmountEl.value = value;
-      // ne réécrit pas les mises déjà posées, le bouton sert à choisir la prochaine valeur
     };
 
     document.getElementById('spin').addEventListener('click', spinWheel);
@@ -776,7 +979,10 @@
 
     buildTable();
     buildWheel();
-    setStatus('Choisissez un numéro ou une couleur, placez un jeton puis lancez.', '#888');
+    renderLeaders(window.initialLeaders || []);
+    setStatus('Choisissez un numéro ou une couleur, placez des jetons puis lancez.', '#888');
+    updateCredits();
   </script>
+<?php endif; ?>
 </body>
 </html>
