@@ -602,6 +602,8 @@
       }
     };
 
+    const pointerOffset = -90; // aligne l'origine des angles avec la flèche (haut)
+
     const buildWheel = () => {
       const slotAngle = 360 / wheelOrder.length;
       const segments = wheelOrder.map((num, i) => {
@@ -609,9 +611,9 @@
         const end = start + slotAngle;
         const color = getColor(num);
         const hex = color === 'red' ? '#e44636' : color === 'black' ? '#101010' : '#2fc485';
-        return `${hex} ${start}deg ${end}deg`;
+        return `${hex} ${start + pointerOffset}deg ${end + pointerOffset}deg`;
       }).join(', ');
-      wheel.style.background = `conic-gradient(${segments})`;
+      wheel.style.background = `conic-gradient(from ${pointerOffset}deg, ${segments})`;
 
       wheelNumbers.innerHTML = '';
       const radius = wheel.clientWidth / 2 - 20;
@@ -619,7 +621,7 @@
         const marker = document.createElement('div');
         const color = getColor(num);
         marker.className = `slot ${color}`;
-        const angle = i * slotAngle + slotAngle / 2;
+        const angle = i * slotAngle + slotAngle / 2 + pointerOffset;
         marker.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(-${radius}px) rotate(${-angle}deg)`;
         marker.textContent = num;
         wheelNumbers.appendChild(marker);
@@ -675,7 +677,7 @@
       const color = getColor(number);
       const slotAngle = 360 / wheelOrder.length;
       const targetIndex = wheelOrder.indexOf(number);
-      const targetAngle = targetIndex * slotAngle + slotAngle / 2;
+      const targetAngle = targetIndex * slotAngle + slotAngle / 2 + pointerOffset;
       const extraSpins = 3 + Math.random() * 2;
       const finalRotation = -(extraSpins * 360 + targetAngle);
       wheel.style.transform = `rotate(${finalRotation}deg)`;
