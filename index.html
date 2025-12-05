@@ -602,7 +602,7 @@
       }
     };
 
-    const pointerOffset = -90; // aligne l'origine des angles avec la flèche (haut)
+    const pointerOffset = 90; // décale l'angle d'origine pour aligner les cases sur la flèche (12h)
 
     const buildWheel = () => {
       const slotAngle = 360 / wheelOrder.length;
@@ -679,7 +679,7 @@
       const targetIndex = wheelOrder.indexOf(number);
       const targetAngle = targetIndex * slotAngle + slotAngle / 2 + pointerOffset;
       const extraSpins = 3 + Math.random() * 2;
-      const finalRotation = -(extraSpins * 360 + targetAngle);
+      const finalRotation = (extraSpins * 360 + targetAngle); // rotation horaire pour respecter l'ordre de la roue
       wheel.style.transform = `rotate(${finalRotation}deg)`;
 
       setTimeout(() => {
