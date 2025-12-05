@@ -466,6 +466,10 @@
     ];
 
     const rows = 8;
+    const ballRadius = 10;
+    const pegRadius = 5;
+    const gravity = { x: 0, y: 0.48 };
+    let pegPoints = [];
     let credits = 10000;
     let dropping = false;
 
@@ -506,6 +510,7 @@
 
     const buildPegs = () => {
       board.querySelectorAll('.peg').forEach(p => p.remove());
+      pegPoints = [];
       const fragment = document.createDocumentFragment();
       const { padding, usableWidth, topOffset, verticalGap } = getBoardMetrics();
 
@@ -515,6 +520,7 @@
         const y = topOffset + row * verticalGap;
         for (let i = 0; i < pegsInRow; i++) {
           const x = padding + spacing * (i + 1);
+          pegPoints.push({ x, y });
           const peg = document.createElement('div');
           peg.className = 'peg';
           peg.style.left = `${x}px`;
@@ -525,38 +531,78 @@
       board.appendChild(fragment);
     };
 
-    const computePath = () => {
-      const { slotWidth, topOffset, verticalGap, settleY, xForIndex } = getBoardMetrics();
+    const simulatePath = () => {
+      const { padding, usableWidth, slotWidth, topOffset, settleY, xForIndex } = getBoardMetrics();
       const lastIndex = slotData.length - 1;
-      let index = Math.floor(slotData.length / 2);
-      let momentum = 0;
+      const leftWall = padding + ballRadius;
+      const rightWall = padding + usableWidth - ballRadius;
+      const restitution = 0.36;
+      const friction = 0.995;
       const path = [];
-      const startY = 10;
-      path.push({ x: xForIndex(index), y: startY });
 
-      const clampIndex = (idx) => Math.max(0, Math.min(lastIndex, idx));
-      const jitter = (scale = 0.25) => (Math.random() - 0.5) * slotWidth * scale;
+      let x = xForIndex(Math.floor(slotData.length / 2));
+      let y = 8;
+      let vx = (Math.random() - 0.5) * 1.2;
+      let vy = 0;
 
-      for (let r = 0; r < rows; r++) {
-        const pegY = topOffset + r * verticalGap;
-        const midY = pegY + verticalGap * 0.45; // contact avec le peg
-        path.push({ x: xForIndex(index) + jitter(0.18), y: pegY });
-        path.push({ x: xForIndex(index) + jitter(0.28), y: midY });
+      const clampIndex = (val) => Math.max(0, Math.min(lastIndex, val));
 
-        let deflection = (Math.random() - 0.5) * 1.4 + momentum * 0.65;
-        momentum = Math.max(-1.9, Math.min(1.9, deflection * 0.88));
+      for (let step = 0; step < 900; step++) {
+        vx += gravity.x;
+        vy += gravity.y;
 
-        if ((index <= 0 && momentum < 0) || (index >= lastIndex && momentum > 0)) {
-          momentum *= -0.6; // rebond latéral pour éviter de coller au mur
+        x += vx;
+        y += vy;
+
+        // collisions avec les pegs
+        for (const peg of pegPoints) {
+          const dx = x - peg.x;
+          const dy = y - peg.y;
+          const dist = Math.hypot(dx, dy) || 0.0001;
+          const minDist = pegRadius + ballRadius + 0.5;
+          if (dist < minDist) {
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const overlap = minDist - dist;
+            x += nx * overlap;
+            y += ny * overlap;
+            const vn = vx * nx + vy * ny;
+            if (vn < 0) {
+              vx -= (1 + restitution) * vn * nx;
+              vy -= (1 + restitution) * vn * ny;
+            }
+            vx *= 0.98;
+            vy *= 0.98;
+          }
         }
 
-        index = clampIndex(Math.round(index + momentum));
+        // murs latéraux
+        if (x < leftWall) {
+          x = leftWall;
+          vx = Math.abs(vx) * 0.72;
+        } else if (x > rightWall) {
+          x = rightWall;
+          vx = -Math.abs(vx) * 0.72;
+        }
 
-        const nextY = pegY + verticalGap;
-        path.push({ x: xForIndex(index) + jitter(0.25), y: nextY });
+        vx *= friction;
+        vy *= 0.999;
+
+        // sol
+        if (y > settleY) {
+          y = settleY;
+          vy = -Math.abs(vy) * 0.45;
+          vx *= 0.98;
+        }
+
+        path.push({ x, y });
+
+        if (y >= settleY && Math.abs(vy) < 0.14 && Math.abs(vx) < 0.12) {
+          break;
+        }
       }
 
-      path.push({ x: xForIndex(index) + jitter(0.32), y: settleY });
+      const index = clampIndex(Math.round((x - padding) / slotWidth - 0.5));
       return { path, index };
     };
 
@@ -566,13 +612,15 @@
       });
     };
 
-    const stepDelay = 170; // petits pas rapprochés pour une descente fluide
+    const frameDelay = 16; // ~60fps pour suivre la physique
 
     const animateBall = (path) => {
       return new Promise((resolve) => {
         const ball = document.createElement('div');
         ball.className = 'ball';
+        ball.style.transition = 'left 0s linear, top 0s linear';
         ball.style.left = `${path[0].x}px`;
+        ball.style.top = `${path[0].y}px`;
         board.appendChild(ball);
         ball.getBoundingClientRect();
 
@@ -583,10 +631,11 @@
             setTimeout(() => resolve(ball), 620);
             return;
           }
-          ball.style.left = `${path[i].x}px`;
-          ball.style.top = `${path[i].y}px`;
+          const point = path[i];
+          ball.style.left = `${point.x}px`;
+          ball.style.top = `${point.y}px`;
           i += 1;
-          setTimeout(step, stepDelay);
+          setTimeout(step, frameDelay);
         };
 
         requestAnimationFrame(step);
@@ -635,7 +684,7 @@
       setStatus('Bille en descente...', '#d8b55c');
       dropping = true;
 
-      const { path, index } = computePath();
+      const { path, index } = simulatePath();
       const ball = await animateBall(path);
       const slot = slotData[index];
       highlightSlot(index);
