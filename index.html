@@ -67,6 +67,15 @@
       margin-bottom: 12px;
       position: relative;
       z-index: 1;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
     .credits {
@@ -184,6 +193,24 @@
       border: 1px solid rgba(216, 181, 92, 0.3);
       box-shadow: 0 10px 18px rgba(0,0,0,0.35);
     }
+
+    .nav-btn {
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(216, 181, 92, 0.35);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      transition: transform 0.08s ease, box-shadow 0.12s ease, border 0.12s ease;
+    }
+
+    .nav-btn:hover { border-color: rgba(216, 181, 92, 0.65); transform: translateY(-1px); }
 
     .stage {
       display: grid;
@@ -421,7 +448,10 @@
   <div class="layout">
     <section class="panel">
       <div class="table-head">
-        <h1>Roulette Royale</h1>
+        <div class="nav-actions">
+          <h1>Roulette Royale</h1>
+          <a class="nav-btn" href="pachinko.html">Vers le Pachinko</a>
+        </div>
         <div class="credits" id="credits">Crédits : 10 000</div>
       </div>
 

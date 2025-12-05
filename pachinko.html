@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pachinko Prestige</title>
+  <style>
+    :root {
+      --felt: linear-gradient(135deg, #0f5132 0%, #0c3826 60%, #0f5132 100%);
+      --card: rgba(8, 26, 20, 0.82);
+      --gold: #d8b55c;
+      --shadow: rgba(0, 0, 0, 0.35);
+      --text: #f4f1e6;
+      --muted: #9fb2a5;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 20%, rgba(216, 181, 92, 0.15), transparent 35%),
+                  radial-gradient(circle at 80% 0%, rgba(216, 181, 92, 0.12), transparent 30%),
+                  var(--felt);
+      color: var(--text);
+      font-family: 'Bodoni MT', 'Didot', 'Palatino', serif;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 18px;
+      padding: 26px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid rgba(216, 181, 92, 0.35);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 16px 40px var(--shadow);
+      backdrop-filter: blur(4px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 30%, rgba(216, 181, 92, 0.08), transparent 35%),
+                  radial-gradient(circle at 80% 50%, rgba(216, 181, 92, 0.06), transparent 30%);
+      pointer-events: none;
+    }
+
+    h1, h2 { margin: 0; letter-spacing: 0.08em; }
+    h1 { font-size: 1.9rem; }
+    h2 { font-size: 1.1rem; }
+
+    .table-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 1;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(216, 181, 92, 0.35);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      transition: transform 0.08s ease, box-shadow 0.12s ease, border 0.12s ease;
+    }
+
+    .nav-btn:hover { border-color: rgba(216, 181, 92, 0.65); transform: translateY(-1px); }
+
+    .credits {
+      font-size: 1.1rem;
+      background: rgba(12, 56, 38, 0.7);
+      border: 1px solid rgba(216, 181, 92, 0.35);
+      padding: 10px 16px;
+      border-radius: 12px;
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.25);
+      position: relative;
+      z-index: 1;
+    }
+
+    .status {
+      background: rgba(12, 56, 38, 0.85);
+      border: 1px solid rgba(216, 181, 92, 0.25);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .status .indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.2);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .control {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(216, 181, 92, 0.25);
+      padding: 12px;
+      border-radius: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 0.92rem;
+      letter-spacing: 0.03em;
+    }
+
+    input {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(216, 181, 92, 0.3);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 1rem;
+      width: 100%;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    button.primary, button.ghost {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.12s ease;
+    }
+
+    button:active { transform: translateY(1px); }
+
+    button.primary {
+      background: linear-gradient(135deg, #f0d782, #d6b54b);
+      box-shadow: 0 10px 18px rgba(216, 181, 92, 0.35);
+      color: #0b0b0b;
+    }
+
+    button.ghost {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      border: 1px solid rgba(216, 181, 92, 0.3);
+      box-shadow: 0 10px 18px rgba(0,0,0,0.35);
+    }
+
+    .stage {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 14px;
+      align-items: stretch;
+      position: relative;
+      z-index: 1;
+    }
+
+    .board-card {
+      background: rgba(0, 0, 0, 0.18);
+      border: 1px solid rgba(216, 181, 92, 0.25);
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: inset 0 0 14px rgba(0,0,0,0.3);
+    }
+
+    .board {
+      position: relative;
+      height: 520px;
+      border-radius: 14px;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 0%, rgba(216,181,92,0.08), rgba(0,0,0,0.55)),
+                  linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.7));
+      box-shadow: inset 0 0 24px rgba(0,0,0,0.55), 0 16px 30px rgba(0,0,0,0.35);
+    }
+
+    .board::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(216, 181, 92, 0.15);
+      border-radius: 14px;
+      pointer-events: none;
+    }
+
+    .peg {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #f0d782, #b8862f);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.45);
+      transform: translate(-50%, -50%);
+      opacity: 0.8;
+    }
+
+    .ball {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff7c2, #c99b31);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.4);
+      transform: translate(-50%, -50%);
+      left: 50%;
+      top: -30px;
+      transition: left 0.2s ease-in, top 0.2s ease-in;
+      z-index: 3;
+    }
+
+    .slots-row {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 140px;
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+      padding: 10px 10px 14px;
+      background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,0.65));
+      backdrop-filter: blur(2px);
+    }
+
+    .slot-lane {
+      border-radius: 12px 12px 8px 8px;
+      border: 1px solid rgba(216, 181, 92, 0.25);
+      background: rgba(0,0,0,0.35);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      gap: 8px;
+      position: relative;
+      padding-top: 14px;
+      box-shadow: inset 0 -4px 0 rgba(0,0,0,0.45), inset 0 6px 16px rgba(0,0,0,0.3);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, border 0.12s ease;
+    }
+
+    .slot-lane::before {
+      content: "";
+      position: absolute;
+      top: -90px;
+      left: 50%;
+      width: 12px;
+      height: 90px;
+      background: linear-gradient(180deg, rgba(216, 181, 92, 0), rgba(216, 181, 92, 0.4));
+      transform: translateX(-50%);
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .slot-lane.active {
+      border-color: rgba(216, 181, 92, 0.65);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.45), inset 0 -4px 0 rgba(0,0,0,0.35);
+      transform: translateY(-4px);
+    }
+
+    .slot-mult {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #f0d782;
+    }
+
+    .slot-label { color: var(--muted); font-size: 0.95rem; }
+
+    .outcome {
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(216, 181, 92, 0.3);
+      border-radius: 12px;
+      padding: 14px;
+      min-height: 140px;
+      display: grid;
+      gap: 8px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.35);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(216, 181, 92, 0.12);
+      color: #f0d782;
+    }
+
+    .history-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 10px;
+      max-height: 720px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .history-item {
+      background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(216, 181, 92, 0.25);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .pip { width: 10px; height: 10px; border-radius: 50%; background: #f0d782; }
+    .small { color: var(--muted); font-size: 0.92rem; }
+
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
+      .stage { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <section class="panel">
+      <div class="table-head">
+        <div class="nav-actions">
+          <h1>Pachinko Prestige</h1>
+          <a class="nav-btn" href="index.html">Retour à la roulette</a>
+        </div>
+        <div class="credits" id="credits">Crédits : 10 000</div>
+      </div>
+
+      <div class="status" id="status">
+        <div class="indicator" id="status-indicator" style="background:#888;"></div>
+        <div id="status-text">Choisissez une mise puis lâchez une bille.</div>
+      </div>
+
+      <div class="controls">
+        <div class="control">
+          <label for="bet-amount">Montant de la mise</label>
+          <input id="bet-amount" type="number" min="1" value="150">
+          <div class="small">Multiplicateurs : centre x5, bordures perdantes.</div>
+        </div>
+        <div class="control">
+          <label>Actions</label>
+          <div class="actions">
+            <button class="primary" id="drop">Lâcher une bille</button>
+            <button class="ghost" id="reset">Reset à 10 000</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="board-card">
+          <div class="board" id="board">
+            <div class="slots-row" id="slots-row"></div>
+          </div>
+        </div>
+        <div class="outcome">
+          <div class="small">Dernier résultat</div>
+          <div id="last-slot" class="badge">-</div>
+          <div id="last-net" class="small">En attente...</div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <h2>Historique</h2>
+      <ul class="history-list" id="history"></ul>
+    </aside>
+  </div>
+
+  <script>
+    const creditsEl = document.getElementById('credits');
+    const statusText = document.getElementById('status-text');
+    const statusIndicator = document.getElementById('status-indicator');
+    const betAmountEl = document.getElementById('bet-amount');
+    const dropBtn = document.getElementById('drop');
+    const resetBtn = document.getElementById('reset');
+    const board = document.getElementById('board');
+    const slotsRow = document.getElementById('slots-row');
+    const historyList = document.getElementById('history');
+    const lastSlot = document.getElementById('last-slot');
+    const lastNet = document.getElementById('last-net');
+
+    const slotData = [
+      { label: 'Côté froid', multiplier: 0 },
+      { label: 'Pente douce', multiplier: 1.5 },
+      { label: 'Bonus rapide', multiplier: 2 },
+      { label: 'Jackpot central', multiplier: 5 },
+      { label: 'Bonus rapide', multiplier: 2 },
+      { label: 'Pente douce', multiplier: 1.5 },
+      { label: 'Côté froid', multiplier: 0 },
+    ];
+
+    const rows = 8;
+    let credits = 10000;
+    let dropping = false;
+
+    const formatCredits = (value) => value.toLocaleString('fr-FR');
+
+    const setStatus = (text, color = '#d8b55c') => {
+      statusText.textContent = text;
+      statusIndicator.style.background = color;
+    };
+
+    const updateCredits = () => {
+      creditsEl.textContent = `Crédits : ${formatCredits(credits)}`;
+    };
+
+    const buildSlots = () => {
+      slotsRow.innerHTML = '';
+      slotData.forEach((slot, i) => {
+        const lane = document.createElement('div');
+        lane.className = 'slot-lane';
+        lane.dataset.index = i;
+        lane.innerHTML = `<div class="slot-mult">${slot.multiplier === 0 ? 'Perte' : 'x' + slot.multiplier}</div><div class="slot-label">${slot.label}</div>`;
+        slotsRow.appendChild(lane);
+      });
+    };
+
+    const buildPegs = () => {
+      board.querySelectorAll('.peg').forEach(p => p.remove());
+      const fragment = document.createDocumentFragment();
+      const width = board.clientWidth;
+      const height = board.clientHeight;
+      const padding = 40;
+      const usableWidth = width - padding * 2;
+      const topOffset = 60;
+      const verticalGap = (height - 220 - topOffset) / rows;
+
+      for (let row = 0; row < rows; row++) {
+        const pegsInRow = row + 4;
+        const spacing = usableWidth / (pegsInRow + 1);
+        const y = topOffset + row * verticalGap;
+        for (let i = 0; i < pegsInRow; i++) {
+          const x = padding + spacing * (i + 1);
+          const peg = document.createElement('div');
+          peg.className = 'peg';
+          peg.style.left = `${x}px`;
+          peg.style.top = `${y}px`;
+          fragment.appendChild(peg);
+        }
+      }
+      board.appendChild(fragment);
+    };
+
+    const computePath = () => {
+      const width = board.clientWidth;
+      const height = board.clientHeight;
+      const padding = 40;
+      const usableWidth = width - padding * 2;
+      const slotWidth = usableWidth / slotData.length;
+      const xForIndex = (idx) => padding + slotWidth * (idx + 0.5);
+      let index = Math.floor(slotData.length / 2);
+      const topOffset = 30;
+      const stepY = (height - 220 - topOffset) / rows;
+      const path = [];
+      let y = topOffset;
+      path.push({ x: xForIndex(index), y });
+
+      for (let r = 0; r < rows; r++) {
+        const move = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
+        index = Math.max(0, Math.min(slotData.length - 1, index + move));
+        y += stepY;
+        path.push({ x: xForIndex(index), y });
+      }
+
+      path.push({ x: xForIndex(index), y: height - 150 });
+      return { path, index };
+    };
+
+    const highlightSlot = (index) => {
+      slotsRow.querySelectorAll('.slot-lane').forEach(lane => {
+        lane.classList.toggle('active', Number(lane.dataset.index) === index);
+      });
+    };
+
+    const animateBall = (path) => {
+      return new Promise((resolve) => {
+        const ball = document.createElement('div');
+        ball.className = 'ball';
+        ball.style.left = `${path[0].x}px`;
+        board.appendChild(ball);
+        ball.getBoundingClientRect();
+
+        let i = 0;
+        const step = () => {
+          if (i >= path.length) {
+            setTimeout(() => resolve(ball), 260);
+            return;
+          }
+          ball.style.left = `${path[i].x}px`;
+          ball.style.top = `${path[i].y}px`;
+          i += 1;
+          setTimeout(step, 200);
+        };
+
+        requestAnimationFrame(step);
+      });
+    };
+
+    const addHistory = ({ slot, bet, gain, balance }) => {
+      const item = document.createElement('li');
+      item.className = 'history-item';
+      const pip = document.createElement('div');
+      pip.className = 'pip';
+      const desc = document.createElement('div');
+      desc.innerHTML = `<strong>${slot.label}</strong> (${slot.multiplier === 0 ? 'Perdu' : 'x' + slot.multiplier})`;
+      const gainEl = document.createElement('div');
+      const net = gain - bet;
+      const sign = net >= 0 ? '+' : '-';
+      gainEl.textContent = `${sign}${Math.abs(net).toLocaleString('fr-FR')} cr.`;
+      gainEl.style.color = net >= 0 ? '#d8b55c' : '#f28585';
+      gainEl.title = `Solde: ${formatCredits(balance)}`;
+      item.append(pip, desc, gainEl);
+      historyList.prepend(item);
+    };
+
+    const updateOutcome = (slot, net) => {
+      lastSlot.textContent = slot.multiplier === 0 ? `${slot.label} • perdu` : `${slot.label} • x${slot.multiplier}`;
+      lastNet.textContent = net >= 0
+        ? `+${formatCredits(net)} crédits remportés`
+        : `-${formatCredits(Math.abs(net))} crédits perdus`;
+      lastNet.style.color = net >= 0 ? '#f0d782' : '#f28585';
+    };
+
+    const dropBall = async () => {
+      if (dropping) return;
+      const bet = Number(betAmountEl.value);
+      if (!Number.isFinite(bet) || bet <= 0) {
+        setStatus('Entrez un montant valide avant de jouer.', '#f28585');
+        return;
+      }
+      if (bet > credits) {
+        setStatus('Pas assez de crédits pour cette mise.', '#f28585');
+        return;
+      }
+
+      credits -= bet;
+      updateCredits();
+      setStatus('Bille en descente...', '#d8b55c');
+      dropping = true;
+
+      const { path, index } = computePath();
+      const ball = await animateBall(path);
+      const slot = slotData[index];
+      highlightSlot(index);
+
+      const gain = Math.round(bet * slot.multiplier);
+      credits += gain;
+      updateCredits();
+
+      const net = gain - bet;
+      setStatus(net >= 0 ? 'Belle prise !' : 'Pas de chance, retentez.', net >= 0 ? '#d8b55c' : '#f28585');
+      updateOutcome(slot, net);
+      addHistory({ slot, bet, gain, balance: credits });
+
+      setTimeout(() => ball.remove(), 900);
+      dropping = false;
+    };
+
+    const resetGame = () => {
+      credits = 10000;
+      updateCredits();
+      setStatus('Crédits remis à 10 000. Lâchez une bille.', '#d8b55c');
+      lastSlot.textContent = '-';
+      lastNet.textContent = 'En attente...';
+      historyList.innerHTML = '';
+      highlightSlot(-1);
+    };
+
+    dropBtn.addEventListener('click', dropBall);
+    resetBtn.addEventListener('click', resetGame);
+    window.addEventListener('resize', () => {
+      buildPegs();
+    });
+
+    buildSlots();
+    buildPegs();
+    setStatus('Choisissez une mise puis lâchez une bille.', '#888');
+    updateCredits();
+  </script>
+</body>
+</html>
