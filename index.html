@@ -609,8 +609,9 @@
     };
 
     const buildWheel = () => {
+      // décalage appliqué via "from", pas besoin de le répéter sur chaque stop
       const segments = wheelOrder.map((num, i) => {
-        const start = i * slotAngle + pointerOffset;
+        const start = i * slotAngle;
         const end = start + slotAngle;
         const color = getColor(num);
         const hex = color === 'red' ? '#e44636' : color === 'black' ? '#101010' : '#2fc485';
