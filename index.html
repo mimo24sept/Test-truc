@@ -616,7 +616,7 @@
       wheel.style.background = `conic-gradient(${segments})`;
 
       wheelNumbers.innerHTML = '';
-      const radius = wheel.clientWidth / 2 - 32;
+      const radius = wheel.clientWidth / 2 - 20;
       wheelOrder.forEach((num, i) => {
         const marker = document.createElement('div');
         const color = getColor(num);
